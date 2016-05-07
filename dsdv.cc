@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int, bool);
+		void Init(int, std::string, int, int, int, int, bool);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -26,6 +26,7 @@ class Dsdv {
     MobilityHelper mobility;
     int sides;
     int speed;
+    int dataRate;
     int package;
     int distance;
     bool udp;
@@ -33,7 +34,7 @@ class Dsdv {
 		void CreateNodes(int);
     void CreateDevices(std::string);
 		void SetUpMobility(int);
-		void SetUpPackageSize(int);
+		void SetUpPackageSize(int, int);
 		void SetUpDistance(int);
     void InstallInternetStack(std::string);
     void InstallUDP();
@@ -43,9 +44,11 @@ int main (int argc, char **argv)
 {
   Dsdv test = Dsdv();
 
+  //valores default
   int sides = 5;
   int speed = 500;
-  int package = 8;
+  int dataRate = 8;
+  int package = 1000;
   int distance = 100;
   bool udp = false;
   std::string fileName = "prueba";
@@ -54,11 +57,12 @@ int main (int argc, char **argv)
   cmd.AddValue ("sides", "Number of sides", sides);
   cmd.AddValue ("speed", "Mobility Speed, 0 for static", speed);
   cmd.AddValue ("package", "Package size", package);
+  cmd.AddValue ("dataRate", "Data Rate", dataRate);
   cmd.AddValue ("distance", "Distance between nodes", distance);
   cmd.AddValue ("udp", "Mount UDP", udp);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, distance, udp);
+  test.Init(sides, fileName, speed, package, dataRate, distance, udp);
 
   Simulator::Stop (Seconds (20.0));
   Simulator::Run ();
@@ -71,23 +75,26 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int distance, bool udp) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp) {
   
   this->sides = sides;
   this->speed = speed;
+  this->dataRate = dataRate;
   this->package = package;
   this->distance = distance;
   this->udp = udp;
+
   NS_LOG_UNCOND("Sides: " << sides);
   NS_LOG_UNCOND("Speed: " << speed);
   NS_LOG_UNCOND("PackageSize: " << package);
+  NS_LOG_UNCOND("DataRate: " << dataRate);
   NS_LOG_UNCOND("Distance: " << distance);
   NS_LOG_UNCOND("UDP: " << udp);
 
   CreateNodes(sides);
   CreateDevices(fileName);
   SetUpMobility(speed);
-  SetUpPackageSize(package);
+  SetUpPackageSize(package, dataRate);
   SetUpDistance(distance);
   mobility.Install(nodes);
   InstallInternetStack(fileName);
@@ -133,12 +140,15 @@ void Dsdv::SetUpMobility(int speed) {
   }
 }
 
-void Dsdv::SetUpPackageSize(int packageSize) {
+void Dsdv::SetUpPackageSize(int packageSize, int dataRate) {
   std::stringstream sstm;
-  sstm << package << "kbps";
+  sstm << dataRate << "kbps";
   std::string rate (sstm.str());
+  std::stringstream size;
+  size << packageSize;
+  std::string pkgSize (size.str());
   std::string phyMode ("DsssRate11Mbps");
-  Config::SetDefault ("ns3::OnOffApplication::PacketSize", StringValue ("1000"));
+  Config::SetDefault ("ns3::OnOffApplication::PacketSize", StringValue (pkgSize));
   Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue (rate));
   Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
   Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2000"));
