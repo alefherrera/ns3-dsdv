@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int);
+		void Init(int, std::string, int, int, int, bool);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -28,6 +28,7 @@ class Dsdv {
     int speed;
     int package;
     int distance;
+    bool udp;
 	private:
 		void CreateNodes(int);
     void CreateDevices(std::string);
@@ -35,7 +36,7 @@ class Dsdv {
 		void SetUpPackageSize(int);
 		void SetUpDistance(int);
     void InstallInternetStack(std::string);
-
+    void InstallUDP();
 };
 
 int main (int argc, char **argv)
@@ -46,6 +47,7 @@ int main (int argc, char **argv)
   int speed = 500;
   int package = 8;
   int distance = 100;
+  bool udp = false;
   std::string fileName = "prueba";
 
   CommandLine cmd;
@@ -53,9 +55,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("speed", "Mobility Speed, 0 for static", speed);
   cmd.AddValue ("package", "Package size", package);
   cmd.AddValue ("distance", "Distance between nodes", distance);
+  cmd.AddValue ("udp", "Mount UDP", udp);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, distance);
+  test.Init(sides, fileName, speed, package, distance, udp);
 
   Simulator::Stop (Seconds (20.0));
   Simulator::Run ();
@@ -68,25 +71,28 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int distance) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int distance, bool udp) {
   
   this->sides = sides;
   this->speed = speed;
   this->package = package;
   this->distance = distance;
+  this->udp = udp;
   NS_LOG_UNCOND("Sides: " << sides);
   NS_LOG_UNCOND("Speed: " << speed);
   NS_LOG_UNCOND("PackageSize: " << package);
   NS_LOG_UNCOND("Distance: " << distance);
+  NS_LOG_UNCOND("UDP: " << udp);
 
   CreateNodes(sides);
-
   CreateDevices(fileName);
   SetUpMobility(speed);
   SetUpPackageSize(package);
   SetUpDistance(distance);
   mobility.Install(nodes);
   InstallInternetStack(fileName);
+  if (udp)
+    InstallUDP();
 
 }
 
@@ -98,7 +104,7 @@ void Dsdv::CreateDevices (std::string fileName)
 {
 
   WifiHelper wifi;
-  wifi.SetStandard (WIFI_PHY_STANDARD_80211b);
+  wifi.SetStandard (WIFI_PHY_STANDARD_80211a);
   
   WifiMacHelper wifiMac;
   wifiMac.SetType ("ns3::AdhocWifiMac");
@@ -170,4 +176,26 @@ void Dsdv::InstallInternetStack (std::string fileName)
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ((fileName + ".routes"), std::ios::out);
       dsdv.PrintRoutingTableAllAt (Seconds (updateInterval), routingStream);
     //}
+}
+
+void Dsdv::InstallUDP() {
+  UdpEchoServerHelper server (port);
+  ApplicationContainer apps = server.Install (nodes.Get (0));
+  apps.Start (Seconds (1.0));
+  apps.Stop (Seconds (10.0));
+  Address serverAddress = Address(interfaces.GetAddress (0));
+  Time interPacketInterval = Seconds (1.);
+  uint32_t packetSize = 1024;
+  uint32_t maxPacketCount = 1;
+  UdpEchoClientHelper client (serverAddress, port);
+  client.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
+  client.SetAttribute ("Interval", TimeValue (interPacketInterval));
+  client.SetAttribute ("PacketSize", UintegerValue (packetSize));
+  for (int i = 1; i < sides * sides; i++)
+  {
+    apps = client.Install (nodes.Get (i));
+    apps.Start (Seconds (2.0));
+    apps.Stop (Seconds (10.0));
+  }
+
 }
