@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int, int, bool);
+		void Init(int, std::string, int, int, int, int, bool, int);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -30,6 +30,7 @@ class Dsdv {
     int package;
     int distance;
     bool udp;
+    int networkType;
 	private:
 		void CreateNodes(int);
     void CreateDevices(std::string);
@@ -51,6 +52,7 @@ int main (int argc, char **argv)
   int package = 1000;
   int distance = 100;
   bool udp = false;
+  int networkType = 0;
   std::string fileName = "prueba";
 
   CommandLine cmd;
@@ -60,9 +62,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("dataRate", "Data Rate", dataRate);
   cmd.AddValue ("distance", "Distance between nodes", distance);
   cmd.AddValue ("udp", "Mount UDP", udp);
+  cmd.AddValue ("networkType", "Type of network organization to create.", networkType);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, dataRate, distance, udp);
+  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType);
 
   Simulator::Stop (Seconds (20.0));
   Simulator::Run ();
@@ -75,7 +78,7 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType) {
   
   this->sides = sides;
   this->speed = speed;
@@ -83,13 +86,16 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   this->package = package;
   this->distance = distance;
   this->udp = udp;
+  this->networkType = networkType;
 
+  NS_LOG_UNCOND("Executing DSDV Example with parameters:");
   NS_LOG_UNCOND("Sides: " << sides);
   NS_LOG_UNCOND("Speed: " << speed);
   NS_LOG_UNCOND("PackageSize: " << package);
   NS_LOG_UNCOND("DataRate: " << dataRate);
   NS_LOG_UNCOND("Distance: " << distance);
   NS_LOG_UNCOND("UDP: " << udp);
+  NS_LOG_UNCOND("NetworkType: " << networkType);
 
   CreateNodes(sides);
   CreateDevices(fileName);
@@ -129,15 +135,25 @@ void Dsdv::CreateDevices (std::string fileName)
 }
 
 void Dsdv::SetUpMobility(int speed) {
-  if (speed > 0) {
-    std::stringstream speedValue;
-    speedValue << "ns3::ConstantRandomVariable[Constant="
-                                   << speed
-                                   << "]";
-     mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel", "Speed", StringValue(speedValue.str()));
-  } else {
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+  switch(networkType)
+  {
+    case 0:
+      mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    break;
+
+    //
+    case 1:
+      if (speed > 0) {
+        std::stringstream speedValue;
+        speedValue << "ns3::ConstantRandomVariable[Constant=" << speed << "]";
+        mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel", "Speed", StringValue(speedValue.str()));
+      } else {
+        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+      }
+    break;
   }
+
+
 }
 
 void Dsdv::SetUpPackageSize(int packageSize, int dataRate) {
@@ -157,13 +173,27 @@ void Dsdv::SetUpPackageSize(int packageSize, int dataRate) {
 void Dsdv::SetUpDistance(int distance) {
   
   Ptr<ListPositionAllocator> positionAlloc = CreateObject <ListPositionAllocator>();
-  for (int i = 0; i < sides; i++)
+  switch(networkType)
   {
-    for (int j = 0; j < sides; j++)
-    {
-      positionAlloc ->Add(Vector( i*distance, j*distance, 0));
-    }
-    //positionAlloc ->Add(Vector( i*distance * 3 + (i % 2 ? 0 : distance / -2), i % 2 ? distance : i * distance / 2, 0));
+
+    // Red armada a mano
+    case 0:
+      positionAlloc ->Add(Vector( 50, 100, 0));
+      positionAlloc ->Add(Vector( 100, 200, 0));
+      positionAlloc ->Add(Vector( 100, 50, 0));
+      positionAlloc ->Add(Vector( 150, 100, 0));
+    break;
+
+    // 
+    case 1:
+      for (int i = 0; i < sides; i++)
+      {
+        for (int j = 0; j < sides; j++)
+        {
+          positionAlloc ->Add(Vector( i*distance, j*distance, 0));
+        }
+      }
+    break;
   }
   
   mobility.SetPositionAllocator(positionAlloc);
