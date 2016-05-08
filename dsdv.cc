@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int, int, bool, int, int, int);
+		void Init(int, std::string, int, int, int, int, bool, int, int, int, double);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -33,6 +33,7 @@ class Dsdv {
     int networkType;
     int areaSize;
     int updateInterval;
+    double totalTime;
 	private:
 		void CreateNodes(int);
     void CreateDevices(std::string);
@@ -57,6 +58,7 @@ int main (int argc, char **argv)
   int networkType = 0;
   int areaSize = 200;
   int updateInterval = 6;
+  double totalTime = 20;
   std::string fileName = "prueba";
 
   CommandLine cmd;
@@ -69,11 +71,12 @@ int main (int argc, char **argv)
   cmd.AddValue ("networkType", "Type of network organization to create.", networkType);
   cmd.AddValue ("areaSize", "Size of the bounds to move the nodes.", areaSize);
   cmd.AddValue ("updateInterval", "Update inteval.", updateInterval);
+  cmd.AddValue ("totalTime", "Total Time.", totalTime);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType, areaSize, updateInterval);
+  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType, areaSize, updateInterval, totalTime);
 
-  Simulator::Stop (Seconds (20.0));
+  Simulator::Stop (Seconds (totalTime));
   Simulator::Run ();
   Simulator::Destroy ();
   
@@ -84,7 +87,7 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType, int areaSize, int updateInterval) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType, int areaSize, int updateInterval, double totalTime) {
   
   this->sides = sides;
   this->speed = speed;
@@ -95,6 +98,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   this->networkType = networkType;
   this->areaSize = areaSize;
   this->updateInterval = updateInterval;
+  this->totalTime = totalTime;
 
   NS_LOG_UNCOND("Executing DSDV Example with parameters:");
   NS_LOG_UNCOND("Sides: " << sides);
@@ -106,6 +110,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   NS_LOG_UNCOND("NetworkType: " << networkType);
   NS_LOG_UNCOND("AreaSize: " << areaSize);
   NS_LOG_UNCOND("UpdateInterval: " << updateInterval);
+  NS_LOG_UNCOND("TotalTime: " << totalTime);
 
   CreateNodes(sides);
   CreateDevices(fileName);
@@ -225,7 +230,7 @@ void Dsdv::InstallUDP() {
   UdpEchoServerHelper server (port);
   ApplicationContainer apps = server.Install (nodes.Get (0));
   apps.Start (Seconds (1.0));
-  apps.Stop (Seconds (10.0));
+  apps.Stop (Seconds (this->totalTime));
   Address serverAddress = Address(interfaces.GetAddress (0));
   Time interPacketInterval = Seconds (1.);
   uint32_t packetSize = 1024;
@@ -238,7 +243,7 @@ void Dsdv::InstallUDP() {
   {
     apps = client.Install (nodes.Get (i));
     apps.Start (Seconds (2.0));
-    apps.Stop (Seconds (10.0));
+    apps.Stop (Seconds (this->totalTime));
   }
 
 }
