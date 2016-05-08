@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int, int, bool, int);
+		void Init(int, std::string, int, int, int, int, bool, int, int);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -31,6 +31,7 @@ class Dsdv {
     int distance;
     bool udp;
     int networkType;
+    int areaSize;
 	private:
 		void CreateNodes(int);
     void CreateDevices(std::string);
@@ -53,6 +54,7 @@ int main (int argc, char **argv)
   int distance = 100;
   bool udp = false;
   int networkType = 0;
+  int areaSize = 200;
   std::string fileName = "prueba";
 
   CommandLine cmd;
@@ -63,9 +65,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("distance", "Distance between nodes", distance);
   cmd.AddValue ("udp", "Mount UDP", udp);
   cmd.AddValue ("networkType", "Type of network organization to create.", networkType);
+  cmd.AddValue ("areaSize", "Size of the bounds to move the nodes.", areaSize);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType);
+  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType, areaSize);
 
   Simulator::Stop (Seconds (20.0));
   Simulator::Run ();
@@ -78,7 +81,7 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType, int areaSize) {
   
   this->sides = sides;
   this->speed = speed;
@@ -87,6 +90,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   this->distance = distance;
   this->udp = udp;
   this->networkType = networkType;
+  this->areaSize = areaSize;
 
   NS_LOG_UNCOND("Executing DSDV Example with parameters:");
   NS_LOG_UNCOND("Sides: " << sides);
@@ -96,6 +100,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   NS_LOG_UNCOND("Distance: " << distance);
   NS_LOG_UNCOND("UDP: " << udp);
   NS_LOG_UNCOND("NetworkType: " << networkType);
+  NS_LOG_UNCOND("AreaSize: " << areaSize);
 
   CreateNodes(sides);
   CreateDevices(fileName);
@@ -139,7 +144,10 @@ void Dsdv::SetUpMobility(int speed) {
   if (speed > 0) {
     std::stringstream speedValue;
     speedValue << "ns3::ConstantRandomVariable[Constant=" << speed << "]";
-    mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel", "Speed", StringValue(speedValue.str()));
+    mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel"
+      ,"Bounds", RectangleValue (Rectangle (0, areaSize, 0, areaSize))
+      ,"Speed", StringValue(speedValue.str())
+      );
   } else {
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   }
