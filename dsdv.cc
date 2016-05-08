@@ -18,7 +18,7 @@ NS_LOG_COMPONENT_DEFINE ("Dsdv");
 class Dsdv {
 	public: 
 		Dsdv();
-		void Init(int, std::string, int, int, int, int, bool, int, int);
+		void Init(int, std::string, int, int, int, int, bool, int, int, int);
 	private:
 	  NodeContainer nodes;
 		NetDeviceContainer devices;
@@ -32,13 +32,14 @@ class Dsdv {
     bool udp;
     int networkType;
     int areaSize;
+    int updateInterval;
 	private:
 		void CreateNodes(int);
     void CreateDevices(std::string);
 		void SetUpMobility(int);
 		void SetUpPackageSize(int, int);
 		void SetUpDistance(int);
-    void InstallInternetStack(std::string);
+    void InstallInternetStack(std::string, int);
     void InstallUDP();
 };
 
@@ -55,6 +56,7 @@ int main (int argc, char **argv)
   bool udp = false;
   int networkType = 0;
   int areaSize = 200;
+  int updateInterval = 6;
   std::string fileName = "prueba";
 
   CommandLine cmd;
@@ -66,9 +68,10 @@ int main (int argc, char **argv)
   cmd.AddValue ("udp", "Mount UDP", udp);
   cmd.AddValue ("networkType", "Type of network organization to create.", networkType);
   cmd.AddValue ("areaSize", "Size of the bounds to move the nodes.", areaSize);
+  cmd.AddValue ("updateInterval", "Update inteval.", updateInterval);
   cmd.Parse (argc, argv);
 
-  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType, areaSize);
+  test.Init(sides, fileName, speed, package, dataRate, distance, udp, networkType, areaSize, updateInterval);
 
   Simulator::Stop (Seconds (20.0));
   Simulator::Run ();
@@ -81,7 +84,7 @@ Dsdv::Dsdv() {
 
 }
 
-void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType, int areaSize) {
+void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dataRate, int distance, bool udp, int networkType, int areaSize, int updateInterval) {
   
   this->sides = sides;
   this->speed = speed;
@@ -91,6 +94,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   this->udp = udp;
   this->networkType = networkType;
   this->areaSize = areaSize;
+  this->updateInterval = updateInterval;
 
   NS_LOG_UNCOND("Executing DSDV Example with parameters:");
   NS_LOG_UNCOND("Sides: " << sides);
@@ -101,6 +105,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   NS_LOG_UNCOND("UDP: " << udp);
   NS_LOG_UNCOND("NetworkType: " << networkType);
   NS_LOG_UNCOND("AreaSize: " << areaSize);
+  NS_LOG_UNCOND("UpdateInterval: " << updateInterval);
 
   CreateNodes(sides);
   CreateDevices(fileName);
@@ -108,7 +113,7 @@ void Dsdv::Init(int sides, std::string fileName, int speed, int package, int dat
   SetUpPackageSize(package, dataRate);
   SetUpDistance(distance);
   mobility.Install(nodes);
-  InstallInternetStack(fileName);
+  InstallInternetStack(fileName, updateInterval);
   if (udp)
     InstallUDP();
 
@@ -196,10 +201,9 @@ void Dsdv::SetUpDistance(int distance) {
   mobility.SetPositionAllocator(positionAlloc);
 }
 
-void Dsdv::InstallInternetStack (std::string fileName)
+void Dsdv::InstallInternetStack (std::string fileName, int updateInterval)
 {
   DsdvHelper dsdv;
-  int updateInterval = 6;
   dsdv.Set ("PeriodicUpdateInterval", TimeValue (Seconds (updateInterval)));
   dsdv.Set ("SettlingTime", TimeValue (Seconds (6)));
   InternetStackHelper stack;
@@ -212,8 +216,8 @@ void Dsdv::InstallInternetStack (std::string fileName)
     //{
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ((fileName + ".routes"), std::ios::out);
       Ptr<OutputStreamWrapper> neighborStream = Create<OutputStreamWrapper> ((fileName + ".neighbor"), std::ios::out);
-      dsdv.PrintRoutingTableAllAt (Seconds (updateInterval), routingStream);
-      dsdv.PrintNeighborCacheAllAt (Seconds (updateInterval), neighborStream);
+      dsdv.PrintRoutingTableAllEvery (Seconds (updateInterval), routingStream);
+      dsdv.PrintNeighborCacheAllEvery (Seconds (updateInterval), neighborStream);
     //}
 }
 
