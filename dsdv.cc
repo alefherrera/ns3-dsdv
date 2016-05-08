@@ -46,7 +46,7 @@ int main (int argc, char **argv)
   Dsdv test = Dsdv();
 
   //valores default
-  int sides = 5;
+  int sides = 2;
   int speed = 500;
   int dataRate = 8;
   int package = 1000;
@@ -131,6 +131,7 @@ void Dsdv::CreateDevices (std::string fileName)
 
   AsciiTraceHelper ascii;
   wifiPhy.EnableAsciiAll (ascii.CreateFileStream (fileName + ".tr"));
+  wifiPhy.EnableAscii("prefix", nodes);
   wifiPhy.EnablePcapAll (fileName);
 }
 
@@ -214,7 +215,9 @@ void Dsdv::InstallInternetStack (std::string fileName)
   //if (m_printRoutes)
     //{
       Ptr<OutputStreamWrapper> routingStream = Create<OutputStreamWrapper> ((fileName + ".routes"), std::ios::out);
+      Ptr<OutputStreamWrapper> neighborStream = Create<OutputStreamWrapper> ((fileName + ".neighbor"), std::ios::out);
       dsdv.PrintRoutingTableAllAt (Seconds (updateInterval), routingStream);
+      dsdv.PrintNeighborCacheAllAt (Seconds (updateInterval), neighborStream);
     //}
 }
 
