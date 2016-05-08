@@ -136,25 +136,13 @@ void Dsdv::CreateDevices (std::string fileName)
 }
 
 void Dsdv::SetUpMobility(int speed) {
-  switch(networkType)
-  {
-    case 0:
-      mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    break;
-
-    //
-    case 1:
-      if (speed > 0) {
-        std::stringstream speedValue;
-        speedValue << "ns3::ConstantRandomVariable[Constant=" << speed << "]";
-        mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel", "Speed", StringValue(speedValue.str()));
-      } else {
-        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-      }
-    break;
+  if (speed > 0) {
+    std::stringstream speedValue;
+    speedValue << "ns3::ConstantRandomVariable[Constant=" << speed << "]";
+    mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel", "Speed", StringValue(speedValue.str()));
+  } else {
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   }
-
-
 }
 
 void Dsdv::SetUpPackageSize(int packageSize, int dataRate) {
