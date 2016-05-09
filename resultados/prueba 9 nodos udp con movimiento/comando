@@ -1,0 +1,1 @@
+./waf --run scratch/dsdv --vis --cwd=Output/ --command-template="%s --sides=3 --networkType=1 --updateInterval=5 --distance=100 --speed=50 --udp=true --areaSize=400 "
