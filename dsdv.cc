@@ -239,11 +239,14 @@ void Dsdv::InstallUDP() {
   client.SetAttribute ("MaxPackets", UintegerValue (maxPacketCount));
   client.SetAttribute ("Interval", TimeValue (interPacketInterval));
   client.SetAttribute ("PacketSize", UintegerValue (packetSize));
-  for (int i = 1; i < sides * sides; i++)
-  {
-    apps = client.Install (nodes.Get (i));
-    apps.Start (Seconds (2.0));
-    apps.Stop (Seconds (this->totalTime));
-  }
+  //for (int i = 1; i < sides * sides; i++)
+  //{
+  //  apps = client.Install (nodes.Get (i));
+  //  apps.Start (Seconds (2.0));
+  //  apps.Stop (Seconds (this->totalTime));
+  //}
+  apps = client.Install (nodes.Get (sides * sides -1));
+  apps.Start (Seconds (2.0));
+  apps.Stop (Seconds (this->totalTime));
 
 }
